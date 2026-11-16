@@ -1,0 +1,12 @@
+Hello,
+
+{{ inviter_name }} has invited you to join the project "{{ project_title }}"
+as {{ role }} on {{ center_name }}.
+Click the link below to accept the invitation:
+
+  {{ invite_url }}
+
+This link is valid for {{ expiry_days }} day(s) and can only be used once.
+If the link has expired, please ask {{ inviter_name }} or another project manager to send a new invitation.
+
+{{ signature }}

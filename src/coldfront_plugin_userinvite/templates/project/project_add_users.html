@@ -1,0 +1,58 @@
+{% extends "project/project_add_users.html" %}
+
+{% block content %}
+    {{ block.super }}
+    {% include "userinvite/invite_section.html" %}
+{% endblock %}
+
+{% block javascript %}
+  {{ block.super }}
+  {# ── htmx (same version used by documents and attribute_request apps) ── #}
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.js"
+          integrity="sha384-oeUn82QNXPuVkGCkcrInrS1twIxKhkZiFfr2TdiuObZ3n3yIeMiqcRzkIcguaof1"
+          crossorigin="anonymous"></script>
+  <script>
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) {
+        return parts.pop().split(';').shift();
+      }
+      return '';
+    }
+
+    document.body.addEventListener('htmx:configRequest', function (event) {
+      const csrfToken = getCookie('csrftoken');
+      if (csrfToken) {
+        delete event.detail.headers['x-csrftoken'];
+        delete event.detail.headers['X-CSRFToken'];
+        event.detail.headers['X-CSRFToken'] = csrfToken;
+      }
+    });
+  </script>
+  <script>
+    function initInviteTable() {
+      var $table = $('#invite-table');
+      if (!$table.length) return;
+      if ($.fn.DataTable.isDataTable($table)) {
+        $table.DataTable().destroy();
+      }
+      $table.DataTable({
+        'aoColumnDefs': [{'bSortable': false, 'aTargets': ['nosort']}],
+        'aLengthMenu': [[10, 25, 50, 100], [10, 25, 50, 100]],
+        'iDisplayLength': 10,
+        'order': [[4, 'desc']]
+      });
+    }
+
+    // Initial page load
+    $(document).ready(function () {
+      initInviteTable();
+    });
+
+    // Re-initialize after every HTMX swap (show/hide history, resend, revoke…)
+    document.body.addEventListener('htmx:afterSettle', function () {
+      initInviteTable();
+    });
+  </script>
+{% endblock %}

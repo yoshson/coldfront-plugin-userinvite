@@ -1,0 +1,134 @@
+<div id="userinvite-list" class="mb-1 mt-4">
+  {# Notice lives OUTSIDE the card so show/hide-history swaps don't erase it #}
+  <div id="userinvite-list-notice">
+    {% if invite_table_status_message %}
+      <div class="alert {% if invite_table_is_error %}alert-danger{% else %}alert-success{% endif %} alert-dismissible fade show">
+        {{ invite_table_status_message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert">&times;</button>
+      </div>
+    {% endif %}
+  </div>
+<div id="userinvite-table-card" class="card mb-3 mt-4">
+  <div class="card-header">
+    <h3 class="d-inline" id="invitations"><i class="fas fa-envelope" aria-hidden="true"></i> Invitations</h3>
+    <span class="badge text-bg-secondary">{{ invitations|length }}</span>
+    <div class="float-end">
+      {% if has_history %}
+        {% if show_all %}
+          <a class="btn btn-secondary"
+             hx-get="{% url 'userinvite-list' project.pk %}"
+             hx-target="#userinvite-table-card"
+             hx-select="#userinvite-table-card"
+             hx-swap="outerHTML"
+             role="button">
+            <i class="fas fa-eye-slash" aria-hidden="true"></i> Hide history
+          </a>
+        {% else %}
+          <a class="btn btn-secondary"
+             hx-get="{% url 'userinvite-list' project.pk %}?show_all=1"
+             hx-target="#userinvite-table-card"
+             hx-select="#userinvite-table-card"
+             hx-swap="outerHTML"
+             role="button">
+            <i class="fas fa-history" aria-hidden="true"></i> Show history
+          </a>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  <div class="card-body">
+    {% if invitations %}
+      <div class="table-responsive">
+        <table id="invite-table" class="table table-hover">
+          <thead>
+            <tr>
+              <th scope="col">Email</th>
+              <th scope="col">Role</th>
+              <th scope="col">Status</th>
+              <th scope="col">Invited By</th>
+              <th scope="col">Created</th>
+              <th scope="col">Accepted By</th>
+              <th scope="col" class="nosort">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for inv in invitations %}
+            <tr{% if inv.status != "pending" %} class="text-muted"{% endif %}>
+              <td><a href="mailto:{{ inv.email }}">{{ inv.email }}</a></td>
+              <td>{{ inv.role }}</td>
+              <td >
+                {% if inv.status == "pending" %}
+                  <span class="badge text-bg-warning">Pending</span>
+                {% elif inv.status == "accepted" %}
+                  <span class="badge text-bg-success">Accepted</span>
+                {% elif inv.status == "expired" %}
+                  <span class="badge text-bg-secondary">Expired</span>
+                {% elif inv.status == "revoked" %}
+                  <span class="badge text-bg-danger">Revoked</span>
+                {% elif inv.status == "redundant" %}
+                  <span class="badge text-bg-info">Redundant</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if inv.invited_by %}
+                  {% if inv.invited_by.first_name and inv.invited_by.last_name %}
+                    {{ inv.invited_by.first_name }} {{ inv.invited_by.last_name }}
+                  {% else %}
+                    {{ inv.invited_by.username }}
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td class="text-nowrap">
+                {{ inv.created|date:"Y-m-d H:i" }}
+              </td>
+              <td class="text-nowrap">
+                {% if inv.accepted_at %}
+                  {% if inv.accepted_by %}
+                    <abbr title="{{ inv.accepted_at|date:"Y-m-d H:i" }}">
+                      {% if inv.accepted_by.first_name and inv.accepted_by.last_name %}
+                        {{ inv.accepted_by.first_name }} {{ inv.accepted_by.last_name }}
+                      {% else %}
+                        {{ inv.accepted_by.username }}
+                      {% endif %}
+                    </abbr>
+                  {% else %}
+                    <abbr title="{{ inv.accepted_at|date:"Y-m-d H:i" }}">—</abbr>
+                  {% endif %}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td class="text-nowrap">
+                {% if inv.status == "pending" %}
+                  <button class="btn btn-sm btn-outline-primary"
+                          hx-post="{% url 'userinvite-resend' project.pk inv.pk %}"
+                          hx-target="#userinvite-list"
+                          hx-swap="outerHTML"
+                          title="Revoke and send a new invitation with a fresh link">
+                    <i class="fas fa-redo" aria-hidden="true"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger"
+                          hx-post="{% url 'userinvite-revoke' project.pk inv.pk %}"
+                          hx-target="#userinvite-list"
+                          hx-swap="outerHTML"
+                          title="Revoke invitation"
+                          hx-confirm="Revoke invitation to {{ inv.email }}?">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                  </button>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-info" role="alert">
+        <i class="fas fa-info-circle" aria-hidden="true"></i> There are no pending invitations.
+      </div>
+    {% endif %}
+  </div>{# /card-body #}
+</div>{# /userinvite-table-card #}
+</div>{# /userinvite-list #}
