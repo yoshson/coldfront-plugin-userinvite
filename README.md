@@ -39,7 +39,10 @@ invitation, so accepting requires no further state:
   URL; the signed token is parked in their session so the flow
   continues after login.
 - A logged-in invitee is added to the project as an *Active* user with
-  the invited role. If they are already a member, the invitation is
+  the invited role — through `Project.add_user`, so the
+  `project_activate_user` signal fires and downstream integrations
+  (e.g. allocation membership sync, PI/manager notifications) see the
+  new member. If they are already a member, the invitation is
   marked **redundant** and their role is updated to the invited one
   (unless they are the PI).
 

@@ -12,6 +12,7 @@ from coldfront.core.project.models import (
     ProjectUserRoleChoice,
     ProjectUserStatusChoice,
 )
+from coldfront.core.project.signals import project_activate_user
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.test import override_settings
@@ -153,9 +154,21 @@ def test_authenticated_user_accepts_invitation(client, project):
     )
     client.force_login(user)
 
+    # Accepting must go through Project.add_user, so the
+    # project_activate_user signal fires for the new member
+    # (downstream integrations hang off it).
+    fired = []
+
+    def receiver(sender, **kwargs):
+        fired.append(kwargs.get("project_user_pk"))
+
+    project_activate_user.connect(receiver)
+
     response = client.get(
         reverse(ACCEPT_URL, kwargs={"signed_token": invitation.get_signed_token()})
     )
+
+    project_activate_user.disconnect(receiver)
 
     assert response.status_code == 302
     assert response.url == reverse("project-detail", kwargs={"pk": project.pk})
@@ -168,6 +181,7 @@ def test_authenticated_user_accepts_invitation(client, project):
     project_user = ProjectUser.objects.get(user=user, project=project)
     assert project_user.role.name == "User"
     assert project_user.status.name == "Active"
+    assert fired == [project_user.pk]
 
 
 def test_unauthenticated_accept_redirects_to_login(client, project):

@@ -3,7 +3,6 @@ import logging
 from coldfront.core.project.models import (
     Project,
     ProjectUser,
-    ProjectUserStatusChoice,
 )
 from coldfront.core.utils.common import import_from_settings
 from coldfront.core.utils.mail import (
@@ -292,13 +291,13 @@ class AcceptInviteView(View):
             messages.info(request, msg)
             return redirect("project-detail", pk=project.pk)
 
-        # Add user to project
-        active_status = ProjectUserStatusChoice.objects.get(name="Active")
-        ProjectUser.objects.update_or_create(
-            user=user,
-            project=project,
-            defaults={"role": invitation.role, "status": active_status},
-        )
+        # Add user to project. Project.add_user has the same
+        # update-or-create semantics (a returning member's Removed row
+        # is reactivated, role and status set) and, unlike a direct
+        # ProjectUser write, broadcasts the project_activate_user
+        # signal -- so downstream integrations (allocation membership
+        # sync, PI/manager notifications) see the new member too.
+        project.add_user(user, invitation.role)
 
         invitation.status = Invitation.Status.ACCEPTED
         invitation.accepted_at = timezone.now()
