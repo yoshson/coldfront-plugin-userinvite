@@ -24,6 +24,20 @@ def test_add_users_view_is_patched():
     )
 
 
+def test_user_search_views_are_guarded():
+    """The search/add-existing-user endpoints check the disable setting."""
+    assert getattr(
+        project_views.ProjectAddUsersSearchResultsView,
+        "_userinvite_user_search_patched",
+        False,
+    )
+    assert getattr(
+        project_views.ProjectAddUsersView,
+        "_userinvite_user_search_patched",
+        False,
+    )
+
+
 def test_plugin_urls_resolve_through_root_urlconf():
     """The ready()-time patch appended the plugin's URL patterns."""
     reverse("userinvite-accept", kwargs={"signed_token": "some-token"})

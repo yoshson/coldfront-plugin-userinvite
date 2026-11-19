@@ -1,7 +1,12 @@
 {% extends "project/project_add_users.html" %}
 
 {% block content %}
-    {{ block.super }}
+    {% if userinvite_user_search_disabled %}
+        {# The invite section renders its own <hr>; only add the heading. #}
+        <h2>Add users to project: {{ project.title }}</h2>
+    {% else %}
+        {{ block.super }}
+    {% endif %}
     {% include "userinvite/invite_section.html" %}
 {% endblock %}
 

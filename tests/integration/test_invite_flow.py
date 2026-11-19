@@ -351,3 +351,53 @@ def test_add_users_page_shows_invite_section(pi_client, project):
     assert response.status_code == 200
     assert "Invite Users by Email" in response.content.decode()
     assert set(response.context["invite_form"].fields) == {"emails", "role"}
+
+
+def test_add_users_page_shows_default_user_search_by_default(pi_client, project):
+    response = pi_client.get(
+        reverse("project-add-users-search", kwargs={"pk": project.pk})
+    )
+
+    html = response.content.decode()
+    assert 'id="post-form"' in html
+    assert 'id="id_q"' in html
+
+
+@override_settings(USERINVITE_DISABLE_USER_SEARCH=True)
+def test_disabled_user_search_hides_search_but_keeps_invite_section(pi_client, project):
+    response = pi_client.get(
+        reverse("project-add-users-search", kwargs={"pk": project.pk})
+    )
+
+    assert response.status_code == 200
+    html = response.content.decode()
+    assert "Invite Users by Email" in html
+    assert "Add users to project: Test Project" in html
+    assert 'id="post-form"' not in html
+    assert 'id="id_q"' not in html
+    assert 'id="search_results"' not in html
+
+
+@override_settings(USERINVITE_DISABLE_USER_SEARCH=True)
+def test_disabled_user_search_blocks_search_results_endpoint(pi_client, project):
+    response = pi_client.post(
+        reverse("project-add-users-search-results", kwargs={"pk": project.pk}),
+        {"q": "someone", "search_by": "username"},
+    )
+
+    assert response.status_code == 404
+
+
+@override_settings(USERINVITE_DISABLE_USER_SEARCH=True)
+def test_disabled_user_search_blocks_add_users_endpoint(pi_client, project):
+    response = pi_client.post(
+        reverse("project-add-users", kwargs={"pk": project.pk}),
+        {},
+    )
+
+    assert response.status_code == 404
+    assert (
+        not ProjectUser.objects.filter(project=project)
+        .exclude(user=project.pi)
+        .exists()
+    )
