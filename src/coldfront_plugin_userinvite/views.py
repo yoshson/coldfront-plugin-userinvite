@@ -1,3 +1,12 @@
+"""Views for sending, managing and accepting project invitations.
+
+The manager-facing views (send/list/revoke/resend) return HTML fragments
+for htmx swaps. ``AcceptInviteView`` is public: anonymous visitors are sent
+through ColdFront's login and resume via the ``next`` parameter. The signed
+link is the only credential; acceptance does not match the logged-in
+account's email address against the invitation's.
+"""
+
 import logging
 
 from coldfront.core.project.models import (
@@ -26,6 +35,8 @@ from coldfront_plugin_userinvite.models import Invitation
 
 logger = logging.getLogger(__name__)
 
+# Read at import time, like ColdFront's own views; changes require a
+# process restart (tests patch these module constants instead).
 EMAIL_ENABLED = import_from_settings("EMAIL_ENABLED", False)
 if EMAIL_ENABLED:
     EMAIL_SENDER = import_from_settings("EMAIL_SENDER")
@@ -106,7 +117,7 @@ def invite_context(project, show_all=False):
 def _render_invite_table(
     request, project, show_all=False, status_message="", is_error=False
 ):
-    """Render only the _invite_table.html fragment for htmx history toggle."""
+    """Render the invitation table fragment (history toggle, revoke, resend)."""
     ctx = invite_context(project, show_all=show_all)
     ctx.update(
         {
@@ -123,8 +134,10 @@ def _render_invite_table(
 
 
 def _render_invite_section(request, project, status_message="", is_error=False):
-    """Render the invite_section.html fragment (form + message + table).
-    Used by all htmx views as their response."""
+    """Render the invite section fragment (form + message + table).
+
+    Used as the response to the invite form's htmx POST.
+    """
     ctx = invite_context(project)
     ctx.update(
         {
@@ -234,9 +247,11 @@ class InviteListView(_ProjectManagerTestMixin, View):
 
 
 class AcceptInviteView(View):
-    """Public view — handles the invite link click."""
+    """Public view — handles the invite link click.
 
-    SESSION_KEY = "pending_invite_token"
+    The signed link is the only credential: acceptance does not compare
+    ``request.user.email`` with the invitation's email address.
+    """
 
     def get(self, request, signed_token):
         try:
@@ -249,8 +264,8 @@ class AcceptInviteView(View):
             return redirect("home")
 
         if not request.user.is_authenticated:
-            # Store token in session and redirect to login
-            request.session[self.SESSION_KEY] = signed_token
+            # Login resumes the flow through the next URL, which points
+            # back at this signed accept link.
             login_url = reverse("login")
             next_url = reverse(
                 "userinvite-accept", kwargs={"signed_token": signed_token}
@@ -303,9 +318,6 @@ class AcceptInviteView(View):
         invitation.accepted_at = timezone.now()
         invitation.accepted_by = user
         invitation.save()
-
-        # Clear session key if present
-        request.session.pop(self.SESSION_KEY, None)
 
         messages.success(
             request,

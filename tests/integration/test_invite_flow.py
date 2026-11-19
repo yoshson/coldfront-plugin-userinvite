@@ -20,7 +20,6 @@ from django.urls import reverse
 from django.utils import timezone
 
 from coldfront_plugin_userinvite.models import Invitation
-from coldfront_plugin_userinvite.views import AcceptInviteView
 
 pytestmark = pytest.mark.django_db
 
@@ -193,8 +192,8 @@ def test_unauthenticated_accept_redirects_to_login(client, project):
     assert response.status_code == 302
     assert response.url.startswith(reverse("login"))
     assert "next=" in response.url
-    # The token is kept in the session for the post-login redirect.
-    assert client.session[AcceptInviteView.SESSION_KEY] == signed_token
+    # The signed link is the post-login target; no session state is used.
+    assert signed_token in response.url
 
 
 def test_already_member_accept_updates_role(client, project):
