@@ -133,9 +133,10 @@ def _patch_urlconf():
     (``coldfront.config.urls``) is resolved lazily — on the first request
     or ``reverse()`` call, i.e. after ``AppConfig.ready()`` has run — so
     appending here is picked up everywhere. Deployments with a custom
-    ``ROOT_URLCONF`` can set ``USERINVITE_PATCH_ADD_USERS_VIEW = False``
-    and include ``coldfront_plugin_userinvite.urls`` themselves (e.g. via
-    ColdFront's ``local_urls.py`` hook).
+    ``ROOT_URLCONF`` can set ``USERINVITE_PATCH_COLDFRONT = False`` and
+    include ``coldfront_plugin_userinvite.urls`` themselves (e.g. via
+    ColdFront's ``local_urls.py`` hook), mixing
+    ``coldfront_plugin_userinvite.views.InviteUsersMixin`` into their view.
     """
     import coldfront.config.urls as coldfront_urls
     from django.conf import settings

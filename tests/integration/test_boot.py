@@ -3,9 +3,9 @@
 These tests run against a full ColdFront settings module (see
 ``settings.py``), so a passing test already proves the central
 integration steps: ``AppConfig.ready()`` patches ColdFront's add-users
-view and appends the plugin's URLs to the root URLconf without breaking
-startup, and the plugin's migration creates its table on a fresh
-database.
+view, guards the default user-search endpoints, and appends the plugin's
+URLs to the root URLconf without breaking startup, and the plugin's
+migration creates its table on a fresh database.
 """
 
 import pytest
@@ -47,21 +47,31 @@ def test_plugin_urls_resolve_through_root_urlconf():
     reverse("userinvite-resend", kwargs={"pk": 1, "invite_pk": 1})
 
 
-def test_patch_setting_disables_integration():
-    """USERINVITE_PATCH_ADD_USERS_VIEW=False leaves view and URLconf alone."""
+@pytest.mark.parametrize(
+    "setting_name",
+    [
+        "USERINVITE_PATCH_COLDFRONT",
+        # Deprecated former name, still honored.
+        "USERINVITE_PATCH_ADD_USERS_VIEW",
+    ],
+)
+def test_patch_setting_disables_integration(setting_name):
+    """Either setting name disables the automatic integration."""
     import coldfront.config.urls as coldfront_urls
 
     config = apps.get_app_config("userinvite")
     view = project_views.ProjectAddUsersSearchView
 
-    # Undo the patches applied at startup.
+    # Undo the two patches tracked here: the add-users view wrapper and
+    # the URLconf entry. The user-search guards stay installed; they are
+    # inert while the setting is off.
     view.get_context_data = view._userinvite_original_get_context_data
     del view._userinvite_patched
     appended = coldfront_urls.urlpatterns[-1]
     assert coldfront_urls.urlpatterns.pop() is appended
     del coldfront_urls._userinvite_urls_included
 
-    with override_settings(USERINVITE_PATCH_ADD_USERS_VIEW=False):
+    with override_settings(**{setting_name: False}):
         config.ready()
 
     assert not getattr(view, "_userinvite_patched", False)

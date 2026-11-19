@@ -8,8 +8,22 @@ from django.core.exceptions import ImproperlyConfigured
 logger = logging.getLogger(__name__)
 
 
+def _integration_enabled():
+    """Whether the automatic ColdFront integration should be applied.
+
+    ``USERINVITE_PATCH_COLDFRONT`` is the current name; the former
+    ``USERINVITE_PATCH_ADD_USERS_VIEW`` is still honored when the new
+    setting is unset.
+    """
+    from django.conf import settings
+
+    if hasattr(settings, "USERINVITE_PATCH_COLDFRONT"):
+        return settings.USERINVITE_PATCH_COLDFRONT
+    return getattr(settings, "USERINVITE_PATCH_ADD_USERS_VIEW", True)
+
+
 class UserinviteConfig(AppConfig):
-    """Configure the plugin and attach it to ColdFront's add-users page."""
+    """Configure the plugin and apply the automatic ColdFront integration."""
 
     default_auto_field = "django.db.models.BigAutoField"
     name = "coldfront_plugin_userinvite"
@@ -17,15 +31,14 @@ class UserinviteConfig(AppConfig):
     verbose_name = "User Invites"
 
     def ready(self):
-        from django.conf import settings
-
         # The automatic integration can be disabled, e.g. to wire the
         # invite section up manually or to expose the views behind a
         # custom URLconf.
-        if not getattr(settings, "USERINVITE_PATCH_ADD_USERS_VIEW", True):
+        if not _integration_enabled():
             logger.info(
-                "Userinvite plugin: ColdFront integration (add-users view "
-                "and URLs) disabled via USERINVITE_PATCH_ADD_USERS_VIEW."
+                "Userinvite plugin: automatic ColdFront integration "
+                "(add-users view, user-search guard and URLs) disabled via "
+                "USERINVITE_PATCH_COLDFRONT."
             )
             return
 
@@ -37,7 +50,7 @@ class UserinviteConfig(AppConfig):
             raise ImproperlyConfigured(
                 "coldfront_plugin_userinvite requires ColdFront to be "
                 "installed and is meant to be used inside a ColdFront "
-                "deployment. If you do not want the add-users view to be "
-                "patched, set USERINVITE_PATCH_ADD_USERS_VIEW = False in "
-                "your ColdFront settings."
+                "deployment. If you do not want the automatic integration, "
+                "set USERINVITE_PATCH_COLDFRONT = False in your ColdFront "
+                "settings."
             ) from exc
