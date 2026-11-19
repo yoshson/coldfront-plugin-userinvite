@@ -1,5 +1,8 @@
-"""
-Django-Q tasks for the userinvite plugin.
+"""Django-Q task that expires invitations past their link lifetime.
+
+Register it once with the ``add_userinvite_scheduled_tasks`` management
+command; the ``expire_stale_invitations`` command calls the same function
+for manual or cron-style sweeps.
 """
 
 from coldfront_plugin_userinvite.models import Invitation

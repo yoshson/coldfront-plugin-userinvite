@@ -56,7 +56,7 @@
               <tr{% if inv.status != "pending" %} class="text-muted"{% endif %}>
                 <td><a href="mailto:{{ inv.email }}">{{ inv.email }}</a></td>
                 <td>{{ inv.role }}</td>
-                <td >
+                <td>
                   {% if inv.status == "pending" %}
                     <span class="badge text-bg-warning">Pending</span>
                   {% elif inv.status == "accepted" %}
@@ -126,7 +126,8 @@
         </div>
       {% else %}
         <div class="alert alert-info" role="alert">
-          <i class="fas fa-info-circle" aria-hidden="true"></i> There are no pending invitations.
+          <i class="fas fa-info-circle" aria-hidden="true"></i>
+          {% if show_all %}There are no invitations.{% else %}There are no pending invitations.{% endif %}
         </div>
       {% endif %}
     </div>{# /card-body #}

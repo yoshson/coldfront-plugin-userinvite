@@ -1,7 +1,7 @@
 [project]
 name = "coldfront-plugin-userinvite"
 version = "0.1.0"
-description = "ColdFront plugin inviting external users to join a project via signed one-time email links"
+description = "ColdFront plugin inviting users to join a project via signed one-time email links"
 readme = "README.md"
 authors = [
     { name = "York Schickl", email = "york.schickl@uni-konstanz.de" }
