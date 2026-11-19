@@ -1,3 +1,10 @@
+"""Data model for project invitations.
+
+An invitation records the email address, project and role together with
+the random token that accept links are signed from, plus its lifecycle
+status and acceptance details.
+"""
+
 import secrets
 from datetime import timedelta
 from typing import ClassVar
@@ -16,28 +23,51 @@ class Invitation(models.Model):
         REVOKED = "revoked", "Revoked"
         REDUNDANT = "redundant", "Redundant"
 
-    email = models.EmailField()
+    email = models.EmailField(help_text="Email address the invitation was sent to.")
     project = models.ForeignKey(
-        "project.Project", on_delete=models.CASCADE, related_name="invitations"
+        "project.Project",
+        on_delete=models.CASCADE,
+        related_name="invitations",
+        help_text="Project the invitation grants access to.",
     )
     invited_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="sent_invitations",
+        help_text="User who sent the invitation.",
     )
-    role = models.ForeignKey("project.ProjectUserRoleChoice", on_delete=models.CASCADE)
-    token = models.CharField(max_length=64, unique=True, db_index=True)
+    role = models.ForeignKey(
+        "project.ProjectUserRoleChoice",
+        on_delete=models.CASCADE,
+        help_text="Role the invitee receives on acceptance.",
+    )
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        db_index=True,
+        help_text="Random per-invitation token; accept URLs contain a signed form.",
+    )
     status = models.CharField(
-        max_length=10, choices=Status.choices, default=Status.PENDING
+        max_length=10,
+        choices=Status.choices,
+        default=Status.PENDING,
+        help_text="Current lifecycle state of the invitation.",
     )
-    created = models.DateTimeField(auto_now_add=True)
-    accepted_at = models.DateTimeField(null=True, blank=True)
+    created = models.DateTimeField(
+        auto_now_add=True, help_text="When the invitation was created."
+    )
+    accepted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the invitation was accepted or found redundant.",
+    )
     accepted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
         related_name="accepted_invitations",
+        help_text="Account that accepted the invitation.",
     )
 
     class Meta:
@@ -57,10 +87,12 @@ class Invitation(models.Model):
 
     @property
     def max_age(self):
+        """Maximum age of a signed link, in seconds."""
         return getattr(settings, "USERINVITE_LINK_EXPIRY_SECONDS", 604800)
 
     @property
     def is_expired(self):
+        """Whether the invitation has outlived the signed-link lifetime."""
         return timezone.now() > self.created + timedelta(seconds=self.max_age)
 
     def get_signed_token(self):
